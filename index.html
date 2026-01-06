@@ -1,46 +1,436 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-    <title>Kalkulator Compounding Da Vinci</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator Compounding Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: sans-serif; text-align: center; padding: 50px; background-color: #f4f4f9; }
-        .box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); display: inline-block; }
-        input { padding: 10px; margin: 10px; border: 1px solid #ddd; border-radius: 5px; }
-        button { padding: 10px 20px; background-color: #282c34; color: white; border: none; border-radius: 5px; cursor: pointer; }
-        button:hover { background-color: #4a4e58; }
-        h1 { color: #333; }
-        #hasil { font-size: 24px; font-weight: bold; color: #007bff; margin-top: 20px; }
+        /* --- Tema Warna Hitam & Ungu (Akademi Crypto Style) --- */
+        :root {
+            --bg-main: #0a0a0f; /* Hitam pekat latar belakang */
+            --bg-card: #12121a; /* Hitam sedikit terang untuk wadah */
+            --purple-accent: #8a2be2; /* Ungu terang untuk highlight */
+            --purple-dark: #4b0082; /* Ungu gelap untuk gradasi */
+            --text-primary: #ffffff;
+            --text-secondary: #b3b3b3;
+            --border-color: #2a2a35;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: var(--bg-card);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 20px rgba(138, 43, 226, 0.2);
+            width: 100%;
+            max-width: 900px; /* Lebar maksimum agar enak dilihat di layar besar */
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            border: 1px solid var(--border-color);
+        }
+
+        h1, h2 { margin-top: 0; color: var(--purple-accent); }
+        h1 { width: 100%; text-align: center; margin-bottom: 30px; }
+
+        /* Layout Kolom Kiri (Input) dan Kanan (Benchmark & Hasil) */
+        .left-panel, .right-panel { flex: 1 1 350px; }
+
+        /* Styling Input Fields */
+        .input-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 0.9em; }
+        input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--bg-main);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            box-sizing: border-box; /* Penting agar padding tidak menambah lebar */
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        input:focus {
+            outline: none;
+            border-color: var(--purple-accent);
+            box-shadow: 0 0 8px rgba(138, 43, 226, 0.5);
+        }
+        .small-note { font-size: 0.8em; color: var(--text-secondary); margin-top: 4px; display: block;}
+
+        /* Tombol Hitung */
+        button.btn-hitung {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, var(--purple-dark), var(--purple-accent));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 20px;
+        }
+        button.btn-hitung:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(138, 43, 226, 0.4);
+        }
+
+        /* Area Benchmark Data */
+        .benchmark-container {
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto; /* Scroll jika daftar panjang */
+        }
+        .benchmark-item {
+            padding: 10px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            transition: background-color 0.2s;
+        }
+        .benchmark-item:hover { background-color: rgba(138, 43, 226, 0.1); }
+        .benchmark-name { font-weight: bold; }
+        .benchmark-rate { color: var(--purple-accent); }
+        
+        /* Info Box Benchmark */
+        #benchmarkInfoBox {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(138, 43, 226, 0.1);
+            border-left: 4px solid var(--purple-accent);
+            border-radius: 4px;
+            display: none; /* Sembunyikan default */
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        /* Area Hasil dan Chart */
+        #hasilContainer {
+            width: 100%;
+            margin-top: 30px;
+            text-align: center;
+            display: none; /* Sembunyikan sebelum dihitung */
+            border-top: 2px solid var(--border-color);
+            padding-top: 30px;
+        }
+        #hasilAngka {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: var(--purple-accent);
+            margin: 20px 0;
+            text-shadow: 0 0 10px rgba(138, 43, 226, 0.3);
+        }
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
     </style>
 </head>
 <body>
 
-    <div class="box">
-        <h1>🚀 Efek Compounding</h1>
-        <p>Rumus: Awal x (1 + Pertumbuhan) ^ Waktu</p>
-        
-        <input type="number" id="awal" placeholder="Nilai Awal (misal: 1)" value="1">
-        <input type="number" id="persen" placeholder="Persen Harian (misal: 1)" value="1">
-        <input type="number" id="hari" placeholder="Jumlah Hari (misal: 365)" value="365">
-        <br>
-        <button onclick="hitung()">Hitung Masa Depan</button>
+    <div class="container">
+        <h1>🚀 Mesin Waktu Compounding</h1>
 
-        <div id="hasil">Hasil akan muncul di sini...</div>
+        <div class="left-panel">
+            <h2>Parameter Investasi</h2>
+            <div class="input-group">
+                <label for="modalAwal">1. Modal Awal (IDR)</label>
+                <input type="number" id="modalAwal" placeholder="Contoh: 10000000" value="10000000">
+            </div>
+            <div class="input-group">
+                <label for="tambahanPerbulan">2. Tambahan Investasi Perbulan (IDR)</label>
+                <input type="number" id="tambahanPerbulan" placeholder="Contoh: 1000000" value="1000000">
+            </div>
+            <div class="input-group">
+                <label for="growthPertahun">3. Target Growth Pertahun (%)</label>
+                <input type="number" id="growthPertahun" placeholder="Pilih dari kanan atau isi sendiri" step="0.1">
+                <span class="small-note">*Pilih benchmark di kanan untuk mengisi otomatis.</span>
+            </div>
+            <div class="input-group">
+                <label for="tenggatBulan">4. Tenggat Waktu (Bulan)</label>
+                <input type="number" id="tenggatBulan" placeholder="Contoh: 60 (untuk 5 tahun)" value="60">
+                <span class="small-note">*60 bulan = 5 Tahun, 120 bulan = 10 Tahun.</span>
+            </div>
+            <div class="input-group" style="border-top: 1px solid var(--border-color); padding-top: 15px;">
+                <label for="inflasi">5. Penyesuaian Inflasi (% per tahun) - <em>Opsional</em></label>
+                <input type="number" id="inflasi" placeholder="Contoh: 3 (Rata-rata Indonesia)" value="0" step="0.1">
+                <span class="small-note">*Jika diisi, hasil akan menunjukkan NILAI RIIL (daya beli) di masa depan. Jika 0, menunjukkan nilai nominal.</span>
+            </div>
+            
+            <button class="btn-hitung" onclick="hitungCompoundingPro()">HITUNG MASA DEPAN</button>
+        </div>
+
+        <div class="right-panel">
+            <h2>Data Benchmark Historis</h2>
+            <input type="text" id="searchBenchmark" placeholder="Cari benchmark (cth: bca, crypto...)" onkeyup="filterBenchmark()">
+            <span class="small-note" style="margin-bottom: 10px;">*Klik untuk menggunakan rate-nya. Performa masa lalu tidak menjamin masa depan. Data adalah perkiraan rata-rata jangka panjang.</span>
+            
+            <div class="benchmark-container" id="benchmarkList">
+                </div>
+
+             <div id="benchmarkInfoBox">
+                <strong id="infoTitle">Judul</strong>
+                <p id="infoDesc">Deskripsi...</p>
+            </div>
+        </div>
+
+        <div id="hasilContainer">
+            <h2>Proyeksi Kekayaan Anda</h2>
+            <div id="hasilAngka">Rp 0</div>
+            <p id="hasilDetail"></p>
+            
+            <div class="chart-container">
+                <canvas id="myChart"></canvas>
+            </div>
+        </div>
+
     </div>
 
     <script>
-        function hitung() {
-            // 1. Ambil angka dari input user
-            let nilaiAwal = parseFloat(document.getElementById('awal').value);
-            let persen = parseFloat(document.getElementById('persen').value) / 100;
-            let hari = parseFloat(document.getElementById('hari').value);
+        // --- DATABASE BENCHMARK ---
+        // Data ini adalah perkiraan rata-rata historis jangka panjang (CAGR) untuk edukasi.
+        // Sangat penting untuk diingat bahwa ini bukan jaminan return di masa depan.
+        const benchmarkData = [
+            { id: 'sp500', name: 'S&P 500 (Pasar AS)', rate: 10.5, desc: 'Indeks 500 perusahaan terbesar di AS. Standar emas investasi pasif global. Cara beli: Melalui broker saham internasional atau reksa dana indeks saham AS.' },
+            { id: 'nasdaq', name: 'Nasdaq 100 (Tech AS)', rate: 14.2, desc: 'Indeks yang berat di sektor teknologi (Apple, Microsoft, Google). Volatilitas lebih tinggi dari S&P 500. Cara beli: ETF QQQ via broker internasional.' },
+            { id: 'buffett', name: 'Warren Buffett (Berkshire)', rate: 19.8, desc: 'Rata-rata historis luar biasa dari Berkshire Hathaway sejak 1965. Sangat sulit ditiru investor biasa secara konsisten.' },
+            { id: 'bbca', name: 'Saham BBCA (BCA)', rate: 16.5, desc: 'Bank swasta terbesar di Indonesia. Dianggap sebagai saham "blue chip" defensif dengan pertumbuhan stabil jangka panjang. Cara beli: Broker saham Indonesia (sekuritas).' },
+            { id: 'bbri', name: 'Saham BBRI (BRI)', rate: 17.2, desc: 'Bank dengan fokus UMKM terbesar. Historis return tinggi namun sedikit lebih volatil dari BCA. Cara beli: Broker saham Indonesia (sekuritas).' },
+            { id: 'emas', name: 'Emas (Gold)', rate: 4.5, desc: 'Aset lindung nilai (hedging) terhadap inflasi. Bukan untuk pertumbuhan agresif, tapi penjaga nilai. Cara beli: Logam mulia fisik (Antam), tabungan emas digital.' },
+            { id: 'btc', name: 'Bitcoin (Crypto)', rate: 60.0, desc: 'PERINGATAN: Rate ini adalah rata-rata 5 tahun terakhir yang sangat volatil. Bisa naik 100% atau turun 80% dalam setahun. High Risk High Return ekstrem. Cara beli: Crypto Exchange (Tokocrypto, Indodax, Binance).' },
+            { id: 'bridgewater', name: 'Bridgewater (Ray Dalio)', rate: 11.5, desc: 'Hedge fund terbesar dunia. Menggunakan strategi "All Weather" untuk bertahan di segala kondisi ekonomi. Tidak mudah diakses investor ritel.' }
+        ];
 
-            // 2. Rumus Matematika (Compounding)
-            // Nilai Akhir = Awal * (1 + persen) pangkat hari
-            let nilaiAkhir = nilaiAwal * Math.pow((1 + persen), hari);
+        let myChart = null; // Variabel global untuk menyimpan instance chart
 
-            // 3. Tampilkan hasil (dibulatkan 2 desimal)
-            document.getElementById('hasil').innerHTML = 
-                "Setelah " + hari + " hari, nilai Anda menjadi: " + nilaiAkhir.toFixed(2) + "x lipat!";
+        // --- FUNGSI INISIALISASI ---
+        // Dijalankan saat halaman dimuat untuk mengisi daftar benchmark
+        window.onload = function() {
+            const listContainer = document.getElementById('benchmarkList');
+            benchmarkData.forEach(item => {
+                let div = document.createElement('div');
+                div.className = 'benchmark-item';
+                // Menyimpan data di atribut elemen agar mudah diambil saat diklik
+                div.setAttribute('data-rate', item.rate);
+                div.setAttribute('data-name', item.name);
+                div.setAttribute('data-desc', item.desc);
+                div.onclick = function() { selectBenchmark(this); };
+                div.innerHTML = `
+                    <span class="benchmark-name">${item.name}</span>
+                    <span class="benchmark-rate">${item.rate}% /thn</span>
+                `;
+                listContainer.appendChild(div);
+            });
+        };
+
+        // --- FUNGSI Filter Pencarian ---
+        function filterBenchmark() {
+            let input = document.getElementById('searchBenchmark');
+            let filter = input.value.toUpperCase();
+            let container = document.getElementById('benchmarkList');
+            let items = container.getElementsByClassName('benchmark-item');
+
+            for (let i = 0; i < items.length; i++) {
+                let txtValue = items[i].textContent || items[i].innerText;
+                if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                    items[i].style.display = "";
+                } else {
+                    items[i].style.display = "none";
+                }
+            }
+        }
+
+        // --- FUNGSI Saat Benchmark Diklik ---
+        function selectBenchmark(element) {
+            // 1. Isi input growth otomatis
+            document.getElementById('growthPertahun').value = element.getAttribute('data-rate');
+            
+            // 2. Tampilkan kotak info
+            const infoBox = document.getElementById('benchmarkInfoBox');
+            document.getElementById('infoTitle').innerText = "Info: " + element.getAttribute('data-name');
+            document.getElementById('infoDesc').innerText = element.getAttribute('data-desc');
+            infoBox.style.display = 'block';
+
+            // 3. Efek visual klik (opsional, reset warna item lain)
+            let items = document.getElementsByClassName('benchmark-item');
+            for(let item of items) item.style.backgroundColor = 'transparent';
+            element.style.backgroundColor = 'rgba(138, 43, 226, 0.3)';
+        }
+
+        // --- FUNGSI UTAMA: HITUNG & GAMBAR CHART ---
+        function hitungCompoundingPro() {
+            // 1. Ambil Nilai Input
+            let modalAwal = parseFloat(document.getElementById('modalAwal').value) || 0;
+            let tambahanPerbulan = parseFloat(document.getElementById('tambahanPerbulan').value) || 0;
+            let growthPertahunNominal = parseFloat(document.getElementById('growthPertahun').value) || 0;
+            let tenggatBulan = parseInt(document.getElementById('tenggatBulan').value) || 0;
+            let inflasiPertahun = parseFloat(document.getElementById('inflasi').value) || 0;
+
+            if (tenggatBulan <= 0) { alert("Tenggat waktu minimal 1 bulan."); return; }
+
+            // 2. Hitung Rate Riil (Disesuaikan Inflasi)
+            // Rumus Fisher: (1 + rateNominal) = (1 + rateRiil) * (1 + rateInflasi)
+            // Jadi, rateRiil = [(1 + rateNominal) / (1 + rateInflasi)] - 1
+            let rateNominalDesimal = growthPertahunNominal / 100;
+            let inflasiDesimal = inflasiPertahun / 100;
+            let rateRiilTahunan = ((1 + rateNominalDesimal) / (1 + inflasiDesimal)) - 1;
+
+            // Konversi ke rate bulanan: (1 + rateTahunan)^(1/12) - 1
+            let rateBulananEfektif = Math.pow((1 + rateRiilTahunan), (1/12)) - 1;
+
+            // 3. Loop Perhitungan Bulan demi Bulan (untuk data Chart)
+            let saldoSaatIni = modalAwal;
+            let totalModalDisetor = modalAwal;
+            let chartLabels = []; // Sumbu X (Bulan ke-)
+            let chartDataSaldo = []; // Sumbu Y (Saldo)
+            let chartDataModal = []; // Sumbu Y (Total Modal yg disetor)
+
+            chartLabels.push("Start");
+            chartDataSaldo.push(saldoSaatIni);
+            chartDataModal.push(totalModalDisetor);
+
+            for (let i = 1; i <= tenggatBulan; i++) {
+                // a. Bunga berbunga bulan ini
+                saldoSaatIni = saldoSaatIni * (1 + rateBulananEfektif);
+                // b. Tambah setoran bulan ini
+                saldoSaatIni = saldoSaatIni + tambahanPerbulan;
+                
+                // Catat total modal yang keluar dari kantong sendiri
+                totalModalDisetor += tambahanPerbulan;
+
+                // Simpan data untuk chart setiap bulan (agar halus)
+                chartLabels.push("Bulan " + i);
+                chartDataSaldo.push(saldoSaatIni);
+                chartDataModal.push(totalModalDisetor);
+            }
+
+            // 4. Tampilkan Hasil Teks
+            document.getElementById('hasilContainer').style.display = 'block';
+            
+            // Format angka ke Rupiah yang cantik
+            const formatter = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 });
+            
+            document.getElementById('hasilAngka').innerText = formatter.format(saldoSaatIni);
+            
+            let jenisNilai = inflasiPertahun > 0 ? "Nilai Riil (Daya Beli di Masa Depan)" : "Nilai Nominal";
+            let profit = saldoSaatIni - totalModalDisetor;
+            document.getElementById('hasilDetail').innerHTML = `
+                Total modal yang Anda setor: <strong>${formatter.format(totalModalDisetor)}</strong>.<br>
+                Total profit investasi (bunga berbunga): <strong style="color: #00ff88;">${formatter.format(profit)}</strong>.<br>
+                <span class="small-note">*Angka di atas adalah ${jenisNilai}.</span>
+            `;
+
+            // 5. Gambar Chart (Menggunakan Chart.js)
+            gambarChart(chartLabels, chartDataSaldo, chartDataModal);
+        }
+
+        function gambarChart(labels, dataSaldo, dataModal) {
+            const ctx = document.getElementById('myChart').getContext('2d');
+            
+            // Hapus chart sebelumnya jika ada, agar tidak menumpuk saat tombol hitung ditekan lagi
+            if (myChart) {
+                myChart.destroy();
+            }
+
+            // Buat Gradients untuk warna chart agar terlihat futuristik
+            let gradientSaldo = ctx.createLinearGradient(0, 0, 0, 400);
+            gradientSaldo.addColorStop(0, 'rgba(138, 43, 226, 0.6)'); // Ungu terang di atas
+            gradientSaldo.addColorStop(1, 'rgba(138, 43, 226, 0.0)'); // Transparan di bawah
+
+            let gradientModal = ctx.createLinearGradient(0, 0, 0, 400);
+            gradientModal.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+            gradientModal.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
+
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels, // Sumbu X
+                    datasets: [
+                        {
+                            label: 'Total Nilai Aset',
+                            data: dataSaldo, // Sumbu Y1
+                            borderColor: '#8a2be2', // Warna Garis Ungu
+                            backgroundColor: gradientSaldo,
+                            borderWidth: 3,
+                            fill: true, // Isi warna di bawah garis
+                            tension: 0.4, // Membuat garis melengkung halus
+                            pointRadius: 0 // Hilangkan titik-titik agar bersih
+                        },
+                        {
+                            label: 'Total Modal Disetor',
+                            data: dataModal, // Sumbu Y2
+                            borderColor: '#ffffff', // Warna Garis Putih
+                            backgroundColor: gradientModal,
+                            borderWidth: 2,
+                            borderDash: [5, 5], // Garis putus-putus
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: { labels: { color: 'white' } }, // Warna teks legenda
+                        tooltip: {
+                             mode: 'index',
+                             intersect: false,
+                             callbacks: {
+                                // Format angka di tooltip jadi Rupiah
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) { label +=': '; }
+                                    if (context.parsed.y !== null) {
+                                        label += new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(context.parsed.y);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#b3b3b3', maxTicksLimit: 10 }, // Batasi label sumbu X agar tidak penuh
+                            grid: { color: '#2a2a35' } // Warna garis grid
+                        },
+                        y: {
+                            ticks: {
+                                color: '#b3b3b3',
+                                // Format sumbu Y jadi Rupiah (singkat, misal 1M, 100Jt)
+                                callback: function(value, index, values) {
+                                    if(value >= 1000000000) return (value/1000000000).toFixed(1) + ' M';
+                                    if(value >= 1000000) return (value/1000000).toFixed(0) + ' Jt';
+                                    return value;
+                                }
+                            },
+                            grid: { color: '#2a2a35' }
+                        }
+                    }
+                }
+            });
         }
     </script>
 
