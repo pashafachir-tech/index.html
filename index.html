@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Kalkulator Compounding Da Vinci</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 50px; background-color: #f4f4f9; }
+        .box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); display: inline-block; }
+        input { padding: 10px; margin: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        button { padding: 10px 20px; background-color: #282c34; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background-color: #4a4e58; }
+        h1 { color: #333; }
+        #hasil { font-size: 24px; font-weight: bold; color: #007bff; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="box">
+        <h1>🚀 Efek Compounding</h1>
+        <p>Rumus: Awal x (1 + Pertumbuhan) ^ Waktu</p>
+        
+        <input type="number" id="awal" placeholder="Nilai Awal (misal: 1)" value="1">
+        <input type="number" id="persen" placeholder="Persen Harian (misal: 1)" value="1">
+        <input type="number" id="hari" placeholder="Jumlah Hari (misal: 365)" value="365">
+        <br>
+        <button onclick="hitung()">Hitung Masa Depan</button>
+
+        <div id="hasil">Hasil akan muncul di sini...</div>
+    </div>
+
+    <script>
+        function hitung() {
+            // 1. Ambil angka dari input user
+            let nilaiAwal = parseFloat(document.getElementById('awal').value);
+            let persen = parseFloat(document.getElementById('persen').value) / 100;
+            let hari = parseFloat(document.getElementById('hari').value);
+
+            // 2. Rumus Matematika (Compounding)
+            // Nilai Akhir = Awal * (1 + persen) pangkat hari
+            let nilaiAkhir = nilaiAwal * Math.pow((1 + persen), hari);
+
+            // 3. Tampilkan hasil (dibulatkan 2 desimal)
+            document.getElementById('hasil').innerHTML = 
+                "Setelah " + hari + " hari, nilai Anda menjadi: " + nilaiAkhir.toFixed(2) + "x lipat!";
+        }
+    </script>
+
+</body>
+</html>
